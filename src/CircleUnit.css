@@ -1,0 +1,269 @@
+/* src/CircleUnit.css */
+
+.wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 90svh;
+  border-radius:25px;
+  background: #2b2b2bff;
+  padding: 16px;
+}
+
+.card {
+  width: min(1000px, 96vw);
+  background: #bde9abff;
+  border-radius: 26px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+  padding: clamp(12px, 2vw, 20px);
+}
+
+.title {
+  font-family: "Nunito", sans-serif;
+  text-align: center;
+  font-weight: 900;
+  font-size: 72px;
+  color: #fff;
+  margin-bottom: 6px;
+  text-shadow: -2px -2px 0 #2453a9, 2px -2px 0 #2453a9, -2px 2px 0 #2453a9,
+    2px 2px 0 #2453a9; /* stroke ขาวแบบคร่าว ๆ */
+}
+
+.stage {
+  margin: 8px auto;
+  width: min(720px, 92vw);
+  aspect-ratio: 1/1;
+  background: linear-gradient(180deg, #f6fdff, #eef9ff);
+  border-radius: 22px;
+  box-shadow: inset 0 0 0 6px #d8ecff, inset 0 -8px 0 #cae6ff;
+}
+
+/* text styles */
+.deg-label {
+  font-weight: 900;
+  font-size: clamp(11px, 1.8vw, 14px);
+  fill: #1e293b;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 5px;
+}
+
+.pt {
+  font-size: clamp(10px, 1.6vw, 13px);
+  fill: #1f2937;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 5px;
+}
+
+.theta {
+  font-weight: 900;
+  font-size: clamp(16px, 2.5vw, 20px);
+  fill: #6d5bff;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 2px;
+}
+
+.val {
+  font-weight: 900;
+  font-size: clamp(13px, 2vw, 16px);
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 7px;
+}
+.val-sin {
+  fill: #d43d2f;
+}
+.val-cos {
+  fill: #1f7a33;
+}
+
+/* controls */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 12px 4px 6px;
+}
+
+.btn {
+  font-family: "Nunito", sans-serif;  
+  border: 2px solid transparent;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.08);
+  font-size: 24px
+}
+.btn.pink {
+  background: #e8425e;
+  border-color: #f07384;
+}
+.btn.blue {
+  background: #69b5d3;
+  border-color: #5b9ac0;
+}
+.btn.active {
+  outline: 4px solid rgba(255, 255, 255, 0.9);
+}
+
+.input_Container {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family: "Nunito", sans-serif;  
+  padding: 10px 8px;
+  border-radius: 14px;
+  background: #ffea76;
+  font-weight: 900;
+  color: #38357b;
+  font-size: 28px;
+}
+
+.Angle{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  color: #38357b
+}
+.inputAngle{
+  font-family: "Nunito", sans-serif; 
+  align-items:center;
+  justify-items:center;
+  font-weight:900;
+  //padding-right:10px
+  gap: 4px;
+  background: none;   /* ❌ ไม่มีสีพื้นหลัง */
+  border: none;
+  color:#1e293b;
+  font-size: clamp(11px, 1.8vw, 14px);
+  font-size: 28px;
+}
+
+.inputAngle::-webkit-outer-spin-button,
+.inputAngle::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.unit {
+  font-size: 28px;
+  font-weight: 900;
+  color: #38357b;
+}
+.searchIcon{
+  
+  font-size: 46px;     /* ขยายไอคอนด้วย em */
+  color: #38357b;      /* ใช้ currentColor ในไอคอน */
+}
+/* ทำเส้นให้หนาขึ้น */
+.searchIcon *{
+  stroke-width: 3;      /* หนาขึ้นจากค่าเดิม ~2 */
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* ถ้าอยากให้ความหนา "คงที่" เวลาเปลี่ยนขนาด ให้เปิดบรรทัดนี้ */
+  /vector-effect: non-scaling-stroke;
+  padding: 0 5px 0 0
+}
+
+
+.range {
+  width: 100%;
+  margin: 6px 4px;
+}
+
+.readouts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 6px;
+}
+.pill {
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 900;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.07);
+  font-size: clamp(13px, 2vw, 16px);
+}
+.pill.violet {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 1px;
+  height: 70px;
+  align-content: center;
+  justify-items: center;
+  background: #7b41c9;
+}
+.Header1 {
+  font-family: "Nunito", sans-serif;
+  text-align: center;
+  font-size: 34px;
+  color: white; /* ถ้าอยากให้เห็นชัด */
+  margin: 0; /* กันไม่ให้ <p> มีช่องว่างอัตโนมัติ */
+}
+
+.textInfo {
+  text-align: center;
+  font-size: 24px;
+  color: white; /* ถ้าอยากให้เห็นชัด */
+  margin: 0;
+}
+
+.pill.orange {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 1px;
+  height: 70px;
+  align-content: center;
+  justify-items: center;
+  background: #eb673a;
+}
+.pill.green {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 1px;
+  height: 70px;
+  align-content: center;
+  justify-items: center;
+  background: #9fc11c;
+}
+
+.pill b {
+  font-size: clamp(16px, 2.4vw, 18px);
+}
+
+@media (max-width: 640px) {
+  .actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .readouts {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ป้องกันเลือกข้อความตอนลาก */
+.stage,
+.stage * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.deg-label,
+.pt,
+.val,
+.theta {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.quad {
+  font-family: "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 26px;     /* ขนาดสัมพันธ์กับ viewBox 560px พอดี */
+  fill: #2b2b2b;
+  opacity: 0.65;       /* ให้จางเล็กน้อย */
+  pointer-events: none;/* ไม่ให้บังการลากจุดแดง */
+}
