@@ -2,6 +2,7 @@
 import React, { useMemo, useState, useRef, useCallback } from "react";
 import { FiSearch } from "react-icons/fi";
 import "./CircleUnit.css";
+import { approxToExactTrig } from "./trigFormatter";
 
 export default function CircleUnit() {
   const [deg, setDeg] = useState(""); // เก็บค่าจากอินพุต (string) เพื่อควบคุม "0 นำหน้า" ฯลฯ
@@ -16,7 +17,6 @@ export default function CircleUnit() {
   const sinStroke = focus === "sin" ? SIN_ACTIVE : EDGE;
   const cosStroke = focus === "cos" ? COS_ACTIVE : EDGE;
   const smooth = { transition: "stroke 160ms ease, stroke-width 160ms ease" };
-
 
   // ---- sanitize / derive number ----
   const clamp = (n) => Math.max(-360, Math.min(360, n));
@@ -45,6 +45,7 @@ export default function CircleUnit() {
 
   const px = cx + r * c;
   const py = cy - r * s;
+  const pyMirror = 2 * cy - py; // y' = 2*cy - py
 
   const fmt = (x) => (Math.round(x * 100) / 100).toFixed(2);
 
@@ -90,7 +91,7 @@ export default function CircleUnit() {
     );
   };
 
-  const QuadrantLabel = ({ d, text, R = r + 130 }) => {
+  const QuadrantLabel = ({ d, text, R = r + 120 }) => {
     const p = polar(R, d); // ใช้มุมแบบ polar helper ของคุณ
     return (
       <text
@@ -244,10 +245,10 @@ export default function CircleUnit() {
               opacity=".7"
             />
             {/* quadrant labels */}
-            <QuadrantLabel d={toSvg(45)} text="Q1" />
-            <QuadrantLabel d={toSvg(135)} text="Q2" />
-            <QuadrantLabel d={toSvg(225)} text="Q3" />
-            <QuadrantLabel d={toSvg(315)} text="Q4" />
+            <QuadrantLabel d={toSvg(45)} text="Q1(+,+)" />
+            <QuadrantLabel d={toSvg(135)} text="Q2(-,+)" />
+            <QuadrantLabel d={toSvg(225)} text="Q3(-,-)" />
+            <QuadrantLabel d={toSvg(315)} text="Q4(+,-)" />
 
             {/* ticks + labels */}
             {ticks30.map((d0) => (
@@ -283,136 +284,190 @@ export default function CircleUnit() {
               (0,-1)
             </text>
 
-            {/* ===== Right triangle + inner reference angle (always inside) ===== */}
             {(() => {
-              // มุมฉากสี่เหลี่ยม (inset เพื่อไม่ทับเส้น)
+              // ===== พารามิเตอร์สี่เหลี่ยมมุมฉาก/ทิศทาง =====
               const box = 12;
               const pad = 2;
-              const sx = -Math.sign(c || 1); // ทิศเข้าด้านในของแกน x
-              const sy = -Math.sign(s || 1); // ทิศเข้าด้านในของแกน y
+              const sx = -Math.sign(c || 1); // ทิศเข้าด้านในตามแกน x
+              const sy = -Math.sign(s || 1); // ทิศเข้าด้านในตามแกน y
+
+              // จุดอ้างอิงสำหรับสี่เหลี่ยมมุมฉาก (ตัวหลัก)
               const x0 = px + sx * pad;
               const y0 = cy + sy * pad;
 
-              // ===== Inner angle arc (always inside triangle) =====
+              // จุด/ทิศสำหรับ “เงา” (สะท้อนลงล่าง)
+              const syMirror = -sy;
+              const x0m = px + sx * pad;
+              const y0m = cy + syMirror * pad;
+
+              // ===== โค้งมุมด้านใน: ค่าคงที่ร่วม =====
               const arcRadius = 28;
-              const strokeW = 3; // ความหนาเส้นโค้ง
+              const strokeW = 3;
               const capMarginDeg = (strokeW / 2 / arcRadius) * (180 / Math.PI);
-              // มุมเผื่อให้ปลายเส้นไม่ล้ำออก (คำนวณจากครึ่งความหนาเส้น)
+              const MIN_ARC_PX = 4;
+              const COLLISION_MARGIN = 2; // กันชนเล็กน้อย
 
-              // 1) มุม polar: 0° = ขึ้น, เดินตามเข็มเป็นบวก
-              const baseSvg = c >= 0 ? 90 : 270;
-              const hypSvg = 90 - d;
-
-              // 2) มุมสั้นสุด
+              // ตัวช่วย
               const shortest = (from, to) => {
                 let delta = to - from;
                 while (delta > 180) delta -= 360;
                 while (delta < -180) delta += 360;
                 return delta;
               };
-              let delta = shortest(baseSvg, hypSvg);
-              const sign = Math.sign(delta) || 1;
 
-              // 3) กันชนจากขาทั้งสอง + เผื่อปลายเส้นตาม stroke
-              let insetDeg = 2;
-              if (Math.abs(delta) < insetDeg * 2) {
-                insetDeg = Math.max(0.5, Math.abs(delta) / 2 - 0.1);
-              }
-              const totalInset = insetDeg + capMarginDeg;
+              // Ray → AABB first hit distance (ถ้าไม่ชนคืน Infinity)
 
-              // 4) คำนวณโค้ง
-              const startSvg = baseSvg + sign * totalInset;
-              const sweepInset = delta - sign * 2 * totalInset;
-              const endSvg = startSvg + sweepInset;
-              // ทิศทางโค้งด้านใน
-              const sweepCW = delta > 0;
-
-              // mid-angle ของโค้ง
-              const midSvg = startSvg + sweepInset / 2;
-
-              // เวคเตอร์ทิศทางจากศูนย์กลาง
-              const th = ((midSvg - 90) * Math.PI) / 180;
-              const ux = Math.cos(th);
-              const uy = Math.sin(th);
-
-              // กรอบสี่เหลี่ยมมุมฉาก
+              // AABB ของกล่องมุมฉาก (หลัก/เงา)
               const xMin = Math.min(x0, x0 + sx * box);
               const xMax = Math.max(x0, x0 + sx * box);
               const yMin = Math.min(y0, y0 + sy * box);
               const yMax = Math.max(y0, y0 + sy * box);
 
-              // ฟังก์ชันหา “ขอบแรก” ที่ ray ชน
-              function rayFirstHitToAABB(
-                cx,
-                cy,
-                ux,
-                uy,
-                xMin,
-                yMin,
-                xMax,
-                yMax
-              ) {
-                const INF = 1e18;
-                let tHit = INF;
+              const xMinM = Math.min(x0m, x0m + sx * box);
+              const xMaxM = Math.max(x0m, x0m + sx * box);
+              const yMinM = Math.min(y0m, y0m + syMirror * box);
+              const yMaxM = Math.max(y0m, y0m + syMirror * box);
 
-                if (Math.abs(ux) > 1e-6) {
-                  const t1 = (xMin - cx) / ux,
-                    y1 = cy + t1 * uy;
-                  if (t1 > 0 && y1 >= yMin && y1 <= yMax)
-                    tHit = Math.min(tHit, t1);
+              const LINE_MARGIN = 9; // อยากให้ “ชนเร็ว/ช้า” ปรับเลขนี้
+              const xLine = px;
 
-                  const t2 = (xMax - cx) / ux,
-                    y2 = cy + t2 * uy;
-                  if (t2 > 0 && y2 >= yMin && y2 <= yMax)
-                    tHit = Math.min(tHit, t2);
+              // แกนฐาน (ขาฐานไปซ้าย/ขวาตามเครื่องหมาย cos)
+              const baseSvg = c >= 0 ? 90 : 270;
+
+              // ยูทิลคำนวณพารามิเตอร์โค้ง “ด้านใน”
+              function makeInnerArc(fromSvg, toSvg) {
+                let delta = shortest(fromSvg, toSvg);
+                const sign = Math.sign(delta) || 1;
+
+                let insetDeg = 1;
+                if (Math.abs(delta) < insetDeg * 2) {
+                  insetDeg = Math.max(0.5, Math.abs(delta) / 2 - 0.1);
                 }
-                if (Math.abs(uy) > 1e-6) {
-                  const t3 = (yMin - cy) / uy,
-                    x3 = cx + t3 * ux;
-                  if (t3 > 0 && x3 >= xMin && x3 <= xMax)
-                    tHit = Math.min(tHit, t3);
+                const totalInset = insetDeg + capMarginDeg;
 
-                  const t4 = (yMax - cy) / uy,
-                    x4 = cx + t4 * ux;
-                  if (t4 > 0 && x4 >= xMin && x4 <= xMax)
-                    tHit = Math.min(tHit, t4);
-                }
+                const startSvg = fromSvg + sign * totalInset;
+                const sweepInset = delta - sign * 2 * totalInset;
+                const endSvg = startSvg + sweepInset;
+                const sweepCW = delta > 0;
 
-                return tHit;
+                const sweepRad = (Math.abs(sweepInset) * Math.PI) / 180;
+                const arcLen = arcRadius * sweepRad;
+                const showArc = arcLen >= MIN_ARC_PX;
+
+                return { startSvg, endSvg, sweepCW, showArc, sweepInset };
               }
 
-              // ระยะชนจริง
-              const tHit = rayFirstHitToAABB(
-                cx,
-                cy,
-                ux,
-                uy,
-                xMin,
-                yMin,
-                xMax,
-                yMax
+              // โค้งของสามเหลี่ยมหลัก
+              const hypSvg = 90 - d;
+              const mainArc = makeInnerArc(baseSvg, hypSvg);
+
+              // โค้งของ “เงา” (สะท้อนมุมผ่านแกน x ⇒ ใช้ -d)
+              const dMirror = -d;
+              const hypSvgM = 90 - dMirror;
+              const mirrorArc = makeInnerArc(baseSvg, hypSvgM);
+
+              // ===== ตรวจชนกล่องสี่เหลี่ยม: คำนวณทิศ ray ตาม "มุมกลางของโค้ง" =====
+              function arcCollides(
+                arc,
+                boxBounds,
+                marginBox = 6,
+                xLineOpt = null,
+                marginLine = 3
+              ) {
+                if (!arc.showArc || Math.abs(arc.sweepInset) < 0.5)
+                  return false;
+
+                // ===== 1) ชน "กล่องสี่เหลี่ยม" (เหมือนเดิม) =====
+                // หาเวกเตอร์ทิศของมุมกลางโค้ง
+                const midSvg = arc.startSvg + arc.sweepInset / 2;
+                const th = ((midSvg - 90) * Math.PI) / 180;
+                const ux = Math.cos(th),
+                  uy = Math.sin(th);
+
+                const arcEdge = arcRadius + strokeW / 2;
+
+                const tHitBox = rayFirstHitToAABB(
+                  cx,
+                  cy,
+                  ux,
+                  uy,
+                  boxBounds.xMin,
+                  boxBounds.yMin,
+                  boxBounds.xMax,
+                  boxBounds.yMax
+                );
+                const hitBox =
+                  tHitBox !== 1e18 && arcEdge >= tHitBox - marginBox;
+
+                // ===== 2) ชน "เส้นแดงแนวตั้ง" x = px (แบบมุม+ระยะ) =====
+                let hitLine = false;
+                if (xLineOpt != null) {
+                  // ระยะในแนว x จากศูนย์ ถึงเส้นแดง
+                  const distX = Math.abs(xLineOpt - cx); // = |px - cx|
+                  const reachLine = distX <= arcEdge + marginLine;
+
+                  // helper: มุม a→b แบบสั้นสุด [-180,180]
+                  const shortestDeg = (a, b) => {
+                    let d = b - a;
+                    while (d > 180) d -= 360;
+                    while (d < -180) d += 360;
+                    return d;
+                  };
+
+                  // มุมของเส้นแดงในระบบ SVG ของเรา: ขวา=90, ซ้าย=270
+                  const targetSvg = baseSvg; // baseSvg ถูกต้องแล้วตามสัญญาณของ cos
+
+                  // เช็กว่า targetSvg อยู่ "ภายในช่วง" โค้งหรือไม่
+                  const deltaToTarget = shortestDeg(arc.startSvg, targetSvg);
+                  const sameDir =
+                    Math.sign(deltaToTarget || 1) ===
+                    Math.sign(arc.sweepInset || 1);
+                  const withinSpan =
+                    Math.abs(deltaToTarget) <= Math.abs(arc.sweepInset);
+
+                  const angleCoversLine = sameDir && withinSpan;
+
+                  hitLine = reachLine && angleCoversLine;
+                }
+
+                return hitBox || hitLine;
+              }
+
+              function arcStartHitsBox(arc, boxBounds, margin = 6) {
+                if (!arc.showArc) return false;
+
+                // จุดเริ่มของโค้ง (ใช้ helper ของไฟล์เดิมได้เลย)
+                const p = polarToCartesian(cx, cy, arcRadius, arc.startSvg);
+
+                // กล่องขยายด้วย margin
+                const xMin = boxBounds.xMin - margin;
+                const xMax = boxBounds.xMax + margin;
+                const yMin = boxBounds.yMin - margin;
+                const yMax = boxBounds.yMax + margin;
+
+                return p.x >= xMin && p.x <= xMax && p.y >= yMin && p.y <= yMax;
+              }
+
+              const collideMain = arcStartHitsBox(
+                mainArc,
+                { xMin, yMin, xMax, yMax },
+                COLLISION_MARGIN,
+                xLine,
+                LINE_MARGIN
               );
 
-              // เงื่อนไขว่าชนขอบแรก ⇒ ไม่โชว์โค้ง
-              const COLLISION_MARGIN = 6;
-              const arcEdge = arcRadius + strokeW / 2;
-              const collidesFirstEdge =
-                tHit !== 1e18 && arcEdge >= tHit - COLLISION_MARGIN;
-
-              // ความยาวโค้งขั้นต่ำเพื่อกันกรณีสั้นจิ๋ว
-              const MIN_ARC_PX = 12;
-              const sweepRad = (Math.abs(sweepInset) * Math.PI) / 180;
-              const arcLen = arcRadius * sweepRad;
-
-              // เผื่อครึ่งความหนาเส้น (ปลายเส้นจะไม่ถือว่าชนถ้ายังไม่โดนจริง)
-              const ARC_PADDING = strokeW * 0.5;
-
-              // สรุปว่าจะโชว์ไหม
-              const showArc = !collidesFirstEdge && arcLen >= MIN_ARC_PX;
+              const collideMirror = arcStartHitsBox(
+                mirrorArc,
+                { xMin: xMinM, yMin: yMinM, xMax: xMaxM, yMax: yMaxM },
+                COLLISION_MARGIN,
+                xLine,
+                LINE_MARGIN
+              );
 
               return (
                 <g>
-                  {/* ฐาน = cos (ดำปกติ; น้ำเงินเมื่อ focus==='cos') */}
+                  {/* ===== สามเหลี่ยมหลัก ===== */}
+                  {/* ฐาน (cos) */}
                   <line
                     x1={cx}
                     y1={cy}
@@ -423,7 +478,7 @@ export default function CircleUnit() {
                     style={smooth}
                   />
 
-                  {/* ตั้ง = sin (ดำปกติ; แดงเมื่อ focus==='sin') */}
+                  {/* ตั้ง (sin) */}
                   <line
                     x1={px}
                     y1={py}
@@ -431,11 +486,10 @@ export default function CircleUnit() {
                     y2={cy}
                     stroke={sinStroke}
                     strokeWidth={4}
-                    strokeDasharray="6 6" // เก็บเป็นเส้นประเหมือนเดิม
                     style={smooth}
                   />
 
-                  {/* ไฮโปเทนิวส์ คงเดิม */}
+                  {/* ไฮโปเทนิวส์ (เส้นประ) */}
                   <line
                     x1={cx}
                     y1={cy}
@@ -443,9 +497,10 @@ export default function CircleUnit() {
                     y2={py}
                     stroke={HYP}
                     strokeWidth={4}
+                    strokeDasharray="6 6"
                   />
 
-                  {/* มุมฉากเป็นสี่เหลี่ยมเล็ก */}
+                  {/* สี่เหลี่ยมมุมฉาก (หลัก) */}
                   <rect
                     x={Math.min(x0, x0 + sx * box)}
                     y={Math.min(y0, y0 + sy * box)}
@@ -456,23 +511,74 @@ export default function CircleUnit() {
                     strokeWidth={3}
                   />
 
-                  {showArc && (
-                    <>
-                      <path
-                        d={describeArcSweep(
-                          cx,
-                          cy,
-                          arcRadius,
-                          startSvg,
-                          endSvg,
-                          sweepCW
-                        )}
-                        fill="none"
-                        stroke="#ffcc33"
-                        strokeWidth={strokeW}
-                        strokeLinecap="butt" // <<< เปลี่ยนจาก round เป็น butt
-                      />
-                    </>
+                  {/* โค้งมุม (หลัก) — ซ่อนเมื่อชนกล่อง */}
+                  {mainArc.showArc && !collideMain && (
+                    <path
+                      d={describeArcSweep(
+                        cx,
+                        cy,
+                        arcRadius,
+                        mainArc.startSvg,
+                        mainArc.endSvg,
+                        mainArc.sweepCW
+                      )}
+                      fill="none"
+                      stroke="#ffcc33"
+                      strokeWidth={strokeW}
+                      strokeLinecap="butt"
+                    />
+                  )}
+
+                  {/* ===== สามเหลี่ยม “เงา” สะท้อนลงล่าง ===== */}
+                  {/* ตั้งของเงา (ทึบ) */}
+                  <line
+                    x1={px}
+                    y1={cy}
+                    x2={px}
+                    y2={pyMirror}
+                    stroke={sinStroke}
+                    strokeWidth={4}
+                    style={smooth}
+                  />
+
+                  {/* ไฮโปเทนิวส์ของเงา (ประ) */}
+                  <line
+                    x1={cx}
+                    y1={cy}
+                    x2={px}
+                    y2={pyMirror}
+                    stroke={HYP}
+                    strokeWidth={4}
+                    strokeDasharray="6 6"
+                  />
+
+                  {/* สี่เหลี่ยมมุมฉาก (เงา) */}
+                  <rect
+                    x={Math.min(x0m, x0m + sx * box)}
+                    y={Math.min(y0m, y0m + syMirror * box)}
+                    width={box}
+                    height={box}
+                    fill="none"
+                    stroke="#000"
+                    strokeWidth={3}
+                  />
+
+                  {/* โค้งมุม (เงา) — ซ่อนเมื่อชนกล่อง */}
+                  {mirrorArc.showArc && !collideMirror && (
+                    <path
+                      d={describeArcSweep(
+                        cx,
+                        cy,
+                        arcRadius,
+                        mirrorArc.startSvg,
+                        mirrorArc.endSvg,
+                        mirrorArc.sweepCW
+                      )}
+                      fill="none"
+                      stroke="#ffcc33"
+                      strokeWidth={strokeW}
+                      strokeLinecap="butt"
+                    />
                   )}
                 </g>
               );
@@ -484,8 +590,9 @@ export default function CircleUnit() {
               y1={cy}
               x2={px}
               y2={py}
-              stroke="#2b2b2b"
+              stroke={HYP}
               strokeWidth={4}
+              strokeDasharray="6 6"
             />
             <circle
               cx={px}
@@ -549,11 +656,11 @@ export default function CircleUnit() {
           </div>
           <div className="pill orange">
             <p className="Header1">Sin(θ)</p>
-            <p className="textInfo">{fmt(s)}</p>
+            <p className="textInfo">{approxToExactTrig(s)}</p>
           </div>
           <div className="pill green">
-            <p className="Header1"> Cos(θ) </p>
-            <p className="textInfo">{fmt(c)}</p>
+            <p className="Header1">Cos(θ)</p>
+            <p className="textInfo">{approxToExactTrig(c)}</p>
           </div>
         </div>
       </div>
