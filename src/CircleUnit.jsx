@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useRef, useCallback } from "react";
 import { FiSearch } from "react-icons/fi";
 import "./CircleUnit.css";
-import { approxToExactTrig } from "./trigFormatter";
+import { formatTrigValue } from "./trigFormatter";
 
 export default function CircleUnit() {
   const [deg, setDeg] = useState(""); // เก็บค่าจากอินพุต (string) เพื่อควบคุม "0 นำหน้า" ฯลฯ
@@ -40,14 +40,12 @@ export default function CircleUnit() {
   // ---- Canvas params (ทำ responsive ผ่าน CSS; viewBox = size) ----
   const size = 560; // พื้นที่คงที่ของ viewBox (พิกัดภายใน SVG)
   const r = 190; // รัศมีวงกลมหน่วย (ในพิกัด viewBox)
+  const triangleSize = r * 0.7;
   const cx = size / 2;
   const cy = size / 2;
 
-  const px = cx + r * c;
-  const py = cy - r * s;
-  const pyMirror = 2 * cy - py; // y' = 2*cy - py
-
-  const fmt = (x) => (Math.round(x * 100) / 100).toFixed(2);
+  const px = cx + r * Math.cos(rad);
+  const py = cy - r * Math.sin(rad);
 
   // มุมมาตรฐาน (0° ขวา, ทวนเข็มบวก) → มุมสำหรับ polar()/SVG ปัจจุบัน (0° บน, ตามเข็มบวก)
   const toSvg = (theta) => 90 - theta;
@@ -183,7 +181,6 @@ export default function CircleUnit() {
                 <stop offset="100%" stopColor="#bff2a4" />
               </linearGradient>
             </defs>
-
             {/* outer ring & main circle */}
             <circle cx={cx} cy={cy} r={r + 34} fill="url(#ring)" />
             <circle
@@ -194,7 +191,6 @@ export default function CircleUnit() {
               stroke="#254f91"
               strokeWidth={7}
             />
-
             {/* axes */}
             <line
               x1={cx - r - 18}
@@ -214,7 +210,6 @@ export default function CircleUnit() {
               strokeWidth={6}
               strokeLinecap="round"
             />
-
             {/* quadrant tints */}
             <path
               d={`M ${cx} ${cy} L ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${
@@ -249,7 +244,6 @@ export default function CircleUnit() {
             <QuadrantLabel d={toSvg(135)} text="Q2(-,+)" />
             <QuadrantLabel d={toSvg(225)} text="Q3(-,-)" />
             <QuadrantLabel d={toSvg(315)} text="Q4(+,-)" />
-
             {/* ticks + labels */}
             {ticks30.map((d0) => (
               <Tick key={`t-${d0}`} d={toSvg(d0)} />
@@ -263,13 +257,45 @@ export default function CircleUnit() {
                 width={3.5}
               />
             ))}
-            {ticks30.map((d0) => (
-              <AngleLabel key={`a-${d0}`} d={toSvg(d0)} text={`${d0}°`} />
-            ))}
+            {ticks30.map((d0) => {
+              // ถ้าเป็น 0° ให้ขยับขึ้น
+              if (d0 === 0) {
+                const p = polar(r + 36, toSvg(d0));
+                return (
+                  <text
+                    key={`a-${d0}`}
+                    x={p.x}
+                    y={p.y - 14} // ขยับขึ้น 14px
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="deg-label"
+                  >
+                    0°
+                  </text>
+                );
+              }
+              return (
+                <AngleLabel key={`a-${d0}`} d={toSvg(d0)} text={`${d0}°`} />
+              );
+            })}
+            /* เพิ่ม 360° แยกออกจาก 0° */
+            {(() => {
+              const p = polar(r + 36, toSvg(0)); // จุดเดียวกับ 0°
+              return (
+                <text
+                  x={p.x}
+                  y={p.y + 20} // ขยับลงมานิดเพื่อไม่ชน "0°"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="deg-label"
+                >
+                  360°
+                </text>
+              );
+            })()}
             {ticks45.map((d0) => (
               <AngleLabel key={`a45-${d0}`} d={toSvg(d0)} text={`${d0}°`} />
             ))}
-
             {/* special points */}
             <text x={cx + r + 55} y={cy + 3} className="pt">
               (1,0)
@@ -283,317 +309,163 @@ export default function CircleUnit() {
             <text x={cx - 14} y={cy + r + 57} className="pt">
               (0,-1)
             </text>
+            {/* ===== รวมสี่สามเหลี่ยมใน group เดียว แล้วหมุนด้วย d ===== */}
+            <g transform={`rotate(${-d} ${cx} ${cy})`}>
+              {/* Q1 (+,+) */}
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx + triangleSize}
+                y2={cy}
+                stroke={cosStroke}
+                strokeWidth={4}
+                style={smooth}
+              />
+              <line
+                x1={cx + triangleSize}
+                y1={cy}
+                x2={cx + triangleSize}
+                y2={cy - triangleSize}
+                stroke={sinStroke}
+                strokeWidth={4}
+                style={smooth}
+              />
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx + triangleSize}
+                y2={cy - triangleSize}
+                stroke={HYP}
+                strokeWidth={4}
+                strokeDasharray="6 6"
+              />
+              {/* Q2 (-,+) */}
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx - triangleSize}
+                y2={cy}
+                stroke={cosStroke}
+                strokeWidth={4}
+                style={smooth}
+              />
+              <line
+                x1={cx - triangleSize}
+                y1={cy}
+                x2={cx - triangleSize}
+                y2={cy - triangleSize}
+                stroke={sinStroke}
+                strokeWidth={4}
+                style={smooth}
+              />
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx - triangleSize}
+                y2={cy - triangleSize}
+                stroke={HYP}
+                strokeWidth={4}
+                strokeDasharray="6 6"
+              />
+              {/* Q3 (-,-) */}
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx - triangleSize}
+                y2={cy}
+                stroke={cosStroke}
+                strokeWidth={4}
+                style={smooth}
+              />
+              <line
+                x1={cx - triangleSize}
+                y1={cy}
+                x2={cx - triangleSize}
+                y2={cy + triangleSize}
+                stroke={sinStroke}
+                strokeWidth={4}
+                style={smooth}
+              />
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx - triangleSize}
+                y2={cy + triangleSize}
+                stroke={HYP}
+                strokeWidth={4}
+                strokeDasharray="6 6"
+              />
+              {/* Q4 (+,-) */}
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx + triangleSize}
+                y2={cy}
+                stroke={cosStroke}
+                strokeWidth={4}
+                style={smooth}
+              />
+              <line
+                x1={cx + triangleSize}
+                y1={cy}
+                x2={cx + triangleSize}
+                y2={cy + triangleSize}
+                stroke={sinStroke}
+                strokeWidth={4}
+                style={smooth}
+              />
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx + triangleSize}
+                y2={cy + triangleSize}
+                stroke={HYP}
+                strokeWidth={4}
+                strokeDasharray="6 6"
+              />
 
-            {(() => {
-              // ===== พารามิเตอร์สี่เหลี่ยมมุมฉาก/ทิศทาง =====
-              const box = 12;
-              const pad = 2;
-              const sx = -Math.sign(c || 1); // ทิศเข้าด้านในตามแกน x
-              const sy = -Math.sign(s || 1); // ทิศเข้าด้านในตามแกน y
-
-              // จุดอ้างอิงสำหรับสี่เหลี่ยมมุมฉาก (ตัวหลัก)
-              const x0 = px + sx * pad;
-              const y0 = cy + sy * pad;
-
-              // จุด/ทิศสำหรับ “เงา” (สะท้อนลงล่าง)
-              const syMirror = -sy;
-              const x0m = px + sx * pad;
-              const y0m = cy + syMirror * pad;
-
-              // ===== โค้งมุมด้านใน: ค่าคงที่ร่วม =====
-              const arcRadius = 28;
-              const strokeW = 3;
-              const capMarginDeg = (strokeW / 2 / arcRadius) * (180 / Math.PI);
-              const MIN_ARC_PX = 4;
-              const COLLISION_MARGIN = 2; // กันชนเล็กน้อย
-
-              // ตัวช่วย
-              const shortest = (from, to) => {
-                let delta = to - from;
-                while (delta > 180) delta -= 360;
-                while (delta < -180) delta += 360;
-                return delta;
-              };
-
-              // Ray → AABB first hit distance (ถ้าไม่ชนคืน Infinity)
-
-              // AABB ของกล่องมุมฉาก (หลัก/เงา)
-              const xMin = Math.min(x0, x0 + sx * box);
-              const xMax = Math.max(x0, x0 + sx * box);
-              const yMin = Math.min(y0, y0 + sy * box);
-              const yMax = Math.max(y0, y0 + sy * box);
-
-              const xMinM = Math.min(x0m, x0m + sx * box);
-              const xMaxM = Math.max(x0m, x0m + sx * box);
-              const yMinM = Math.min(y0m, y0m + syMirror * box);
-              const yMaxM = Math.max(y0m, y0m + syMirror * box);
-
-              const LINE_MARGIN = 9; // อยากให้ “ชนเร็ว/ช้า” ปรับเลขนี้
-              const xLine = px;
-
-              // แกนฐาน (ขาฐานไปซ้าย/ขวาตามเครื่องหมาย cos)
-              const baseSvg = c >= 0 ? 90 : 270;
-
-              // ยูทิลคำนวณพารามิเตอร์โค้ง “ด้านใน”
-              function makeInnerArc(fromSvg, toSvg) {
-                let delta = shortest(fromSvg, toSvg);
-                const sign = Math.sign(delta) || 1;
-
-                let insetDeg = 1;
-                if (Math.abs(delta) < insetDeg * 2) {
-                  insetDeg = Math.max(0.5, Math.abs(delta) / 2 - 0.1);
-                }
-                const totalInset = insetDeg + capMarginDeg;
-
-                const startSvg = fromSvg + sign * totalInset;
-                const sweepInset = delta - sign * 2 * totalInset;
-                const endSvg = startSvg + sweepInset;
-                const sweepCW = delta > 0;
-
-                const sweepRad = (Math.abs(sweepInset) * Math.PI) / 180;
-                const arcLen = arcRadius * sweepRad;
-                const showArc = arcLen >= MIN_ARC_PX;
-
-                return { startSvg, endSvg, sweepCW, showArc, sweepInset };
-              }
-
-              // โค้งของสามเหลี่ยมหลัก
-              const hypSvg = 90 - d;
-              const mainArc = makeInnerArc(baseSvg, hypSvg);
-
-              // โค้งของ “เงา” (สะท้อนมุมผ่านแกน x ⇒ ใช้ -d)
-              const dMirror = -d;
-              const hypSvgM = 90 - dMirror;
-              const mirrorArc = makeInnerArc(baseSvg, hypSvgM);
-
-              // ===== ตรวจชนกล่องสี่เหลี่ยม: คำนวณทิศ ray ตาม "มุมกลางของโค้ง" =====
-              function arcCollides(
-                arc,
-                boxBounds,
-                marginBox = 6,
-                xLineOpt = null,
-                marginLine = 3
-              ) {
-                if (!arc.showArc || Math.abs(arc.sweepInset) < 0.5)
-                  return false;
-
-                // ===== 1) ชน "กล่องสี่เหลี่ยม" (เหมือนเดิม) =====
-                // หาเวกเตอร์ทิศของมุมกลางโค้ง
-                const midSvg = arc.startSvg + arc.sweepInset / 2;
-                const th = ((midSvg - 90) * Math.PI) / 180;
-                const ux = Math.cos(th),
-                  uy = Math.sin(th);
-
-                const arcEdge = arcRadius + strokeW / 2;
-
-                const tHitBox = rayFirstHitToAABB(
-                  cx,
-                  cy,
-                  ux,
-                  uy,
-                  boxBounds.xMin,
-                  boxBounds.yMin,
-                  boxBounds.xMax,
-                  boxBounds.yMax
-                );
-                const hitBox =
-                  tHitBox !== 1e18 && arcEdge >= tHitBox - marginBox;
-
-                // ===== 2) ชน "เส้นแดงแนวตั้ง" x = px (แบบมุม+ระยะ) =====
-                let hitLine = false;
-                if (xLineOpt != null) {
-                  // ระยะในแนว x จากศูนย์ ถึงเส้นแดง
-                  const distX = Math.abs(xLineOpt - cx); // = |px - cx|
-                  const reachLine = distX <= arcEdge + marginLine;
-
-                  // helper: มุม a→b แบบสั้นสุด [-180,180]
-                  const shortestDeg = (a, b) => {
-                    let d = b - a;
-                    while (d > 180) d -= 360;
-                    while (d < -180) d += 360;
-                    return d;
-                  };
-
-                  // มุมของเส้นแดงในระบบ SVG ของเรา: ขวา=90, ซ้าย=270
-                  const targetSvg = baseSvg; // baseSvg ถูกต้องแล้วตามสัญญาณของ cos
-
-                  // เช็กว่า targetSvg อยู่ "ภายในช่วง" โค้งหรือไม่
-                  const deltaToTarget = shortestDeg(arc.startSvg, targetSvg);
-                  const sameDir =
-                    Math.sign(deltaToTarget || 1) ===
-                    Math.sign(arc.sweepInset || 1);
-                  const withinSpan =
-                    Math.abs(deltaToTarget) <= Math.abs(arc.sweepInset);
-
-                  const angleCoversLine = sameDir && withinSpan;
-
-                  hitLine = reachLine && angleCoversLine;
-                }
-
-                return hitBox || hitLine;
-              }
-
-              function arcStartHitsBox(arc, boxBounds, margin = 6) {
-                if (!arc.showArc) return false;
-
-                // จุดเริ่มของโค้ง (ใช้ helper ของไฟล์เดิมได้เลย)
-                const p = polarToCartesian(cx, cy, arcRadius, arc.startSvg);
-
-                // กล่องขยายด้วย margin
-                const xMin = boxBounds.xMin - margin;
-                const xMax = boxBounds.xMax + margin;
-                const yMin = boxBounds.yMin - margin;
-                const yMax = boxBounds.yMax + margin;
-
-                return p.x >= xMin && p.x <= xMax && p.y >= yMin && p.y <= yMax;
-              }
-
-              const collideMain = arcStartHitsBox(
-                mainArc,
-                { xMin, yMin, xMax, yMax },
-                COLLISION_MARGIN,
-                xLine,
-                LINE_MARGIN
-              );
-
-              const collideMirror = arcStartHitsBox(
-                mirrorArc,
-                { xMin: xMinM, yMin: yMinM, xMax: xMaxM, yMax: yMaxM },
-                COLLISION_MARGIN,
-                xLine,
-                LINE_MARGIN
-              );
-
-              return (
-                <g>
-                  {/* ===== สามเหลี่ยมหลัก ===== */}
-                  {/* ฐาน (cos) */}
-                  <line
-                    x1={cx}
-                    y1={cy}
-                    x2={px}
-                    y2={cy}
-                    stroke={cosStroke}
-                    strokeWidth={4}
-                    style={smooth}
-                  />
-
-                  {/* ตั้ง (sin) */}
-                  <line
-                    x1={px}
-                    y1={py}
-                    x2={px}
-                    y2={cy}
-                    stroke={sinStroke}
-                    strokeWidth={4}
-                    style={smooth}
-                  />
-
-                  {/* ไฮโปเทนิวส์ (เส้นประ) */}
-                  <line
-                    x1={cx}
-                    y1={cy}
-                    x2={px}
-                    y2={py}
-                    stroke={HYP}
-                    strokeWidth={4}
-                    strokeDasharray="6 6"
-                  />
-
-                  {/* สี่เหลี่ยมมุมฉาก (หลัก) */}
-                  <rect
-                    x={Math.min(x0, x0 + sx * box)}
-                    y={Math.min(y0, y0 + sy * box)}
-                    width={box}
-                    height={box}
-                    fill="none"
-                    stroke="#000"
-                    strokeWidth={3}
-                  />
-
-                  {/* โค้งมุม (หลัก) — ซ่อนเมื่อชนกล่อง */}
-                  {mainArc.showArc && !collideMain && (
-                    <path
-                      d={describeArcSweep(
-                        cx,
-                        cy,
-                        arcRadius,
-                        mainArc.startSvg,
-                        mainArc.endSvg,
-                        mainArc.sweepCW
-                      )}
-                      fill="none"
-                      stroke="#ffcc33"
-                      strokeWidth={strokeW}
-                      strokeLinecap="butt"
-                    />
-                  )}
-
-                  {/* ===== สามเหลี่ยม “เงา” สะท้อนลงล่าง ===== */}
-                  {/* ตั้งของเงา (ทึบ) */}
-                  <line
-                    x1={px}
-                    y1={cy}
-                    x2={px}
-                    y2={pyMirror}
-                    stroke={sinStroke}
-                    strokeWidth={4}
-                    style={smooth}
-                  />
-
-                  {/* ไฮโปเทนิวส์ของเงา (ประ) */}
-                  <line
-                    x1={cx}
-                    y1={cy}
-                    x2={px}
-                    y2={pyMirror}
-                    stroke={HYP}
-                    strokeWidth={4}
-                    strokeDasharray="6 6"
-                  />
-
-                  {/* สี่เหลี่ยมมุมฉาก (เงา) */}
-                  <rect
-                    x={Math.min(x0m, x0m + sx * box)}
-                    y={Math.min(y0m, y0m + syMirror * box)}
-                    width={box}
-                    height={box}
-                    fill="none"
-                    stroke="#000"
-                    strokeWidth={3}
-                  />
-
-                  {/* โค้งมุม (เงา) — ซ่อนเมื่อชนกล่อง */}
-                  {mirrorArc.showArc && !collideMirror && (
-                    <path
-                      d={describeArcSweep(
-                        cx,
-                        cy,
-                        arcRadius,
-                        mirrorArc.startSvg,
-                        mirrorArc.endSvg,
-                        mirrorArc.sweepCW
-                      )}
-                      fill="none"
-                      stroke="#ffcc33"
-                      strokeWidth={strokeW}
-                      strokeLinecap="butt"
-                    />
-                  )}
-                </g>
-              );
-            })()}
-
-            {/* radius & moving point (เส้นหลัก + จุดแดงที่ลากได้) */}
-            <line
-              x1={cx}
-              y1={cy}
-              x2={px}
-              y2={py}
-              stroke={HYP}
-              strokeWidth={4}
-              strokeDasharray="6 6"
-            />
+              {/*สีเหลี่ยมุมฉาก */}
+              {/* Q1 */}
+              <rect
+                x={cx + triangleSize - 10}
+                y={cy - 10}
+                width={10}
+                height={10}
+                fill="none"
+                stroke="black"
+                strokeWidth={3}
+              />
+              {/* Q2 */}
+              <rect
+                x={cx - triangleSize}
+                y={cy - 10}
+                width={10}
+                height={10}
+                fill="none"
+                stroke="black"
+                strokeWidth={3}
+              />
+              {/* Q3 */}
+              <rect
+                x={cx - triangleSize}
+                y={cy}
+                width={10}
+                height={10}
+                fill="none"
+                stroke="black"
+                strokeWidth={3}
+              />
+              {/* Q4 */}
+              <rect
+                x={cx + triangleSize - 10}
+                y={cy}
+                width={10}
+                height={10}
+                fill="none"
+                stroke="black"
+                strokeWidth={3}
+              />
+            </g>
             <circle
               cx={px}
               cy={py}
@@ -656,11 +528,11 @@ export default function CircleUnit() {
           </div>
           <div className="pill orange">
             <p className="Header1">Sin(θ)</p>
-            <p className="textInfo">{approxToExactTrig(s)}</p>
+            <p className="textInfo">{formatTrigValue(s)}</p>
           </div>
           <div className="pill green">
             <p className="Header1">Cos(θ)</p>
-            <p className="textInfo">{approxToExactTrig(c)}</p>
+            <p className="textInfo">{formatTrigValue(c)}</p>
           </div>
         </div>
       </div>

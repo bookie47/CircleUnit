@@ -11,6 +11,8 @@
     "start": "vite"
   },
   "dependencies": {
+    "fraction": "^0.2.0",
+    "fraction.js": "^5.3.4",
     "katex": "^0.16.23",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
