@@ -17,17 +17,41 @@
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
   padding: clamp(12px, 2vw, 20px);
 }
+.title-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
 
 .title {
   font-family: "Nunito", sans-serif;
-  text-align: center;
   font-weight: 900;
-  font-size: 72px;
-  color: #fff;
-  margin-bottom: 6px;
-  text-shadow: -2px -2px 0 #2453a9, 2px -2px 0 #2453a9, -2px 2px 0 #2453a9,
-    2px 2px 0 #2453a9; /* stroke ขาวแบบคร่าว ๆ */
+  font-size: 60px;
+  line-height: 1.1;
+  padding: 10px 26px;
+  border-radius: 18px;
+
+  /* ตัวอักษร */
+  color: #ffffff;
+  text-shadow:
+    -2px -2px 0 #1c3d91,   /* น้ำเงินกรมท่า */
+     2px -2px 0 #1c3d91,
+    -2px  2px 0 #1c3d91,
+     2px  2px 0 #1c3d91;
+
+  /* Gradient พื้นหลังโทนสื่อการสอน */
+  //background: linear-gradient(90deg, #318dc2ff, #121fdaff); /* ฟ้า → เขียวมิ้นต์ */
+  //box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+
+  letter-spacing: 1.2px;
+  transition: all 0.3s ease;
 }
+
+.title:hover {
+  transform: scale(1.04);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
 
 .stage {
   margin: 8px auto;
@@ -267,3 +291,5 @@
   opacity: 0.65;       /* ให้จางเล็กน้อย */
   pointer-events: none;/* ไม่ให้บังการลากจุดแดง */
 }
+
+

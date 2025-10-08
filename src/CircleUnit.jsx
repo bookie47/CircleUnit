@@ -12,11 +12,16 @@ export default function CircleUnit() {
   const EDGE = "#000"; // สีดำปกติของสามเหลี่ยม
   const HYP = "#2b2b2b"; // ไฮโปเทนิวส์เดิม
   const SIN_ACTIVE = "#e2536b"; // สีแดงเวลาเน้น sin
-  const COS_ACTIVE = "#2b6df2"; // สีน้ำเงินเวลาเน้น cos
+  const COS_ACTIVE = "#00a2ffff"; // สีน้ำเงินเวลาเน้น cos
 
   const sinStroke = focus === "sin" ? SIN_ACTIVE : EDGE;
   const cosStroke = focus === "cos" ? COS_ACTIVE : EDGE;
-  const smooth = { transition: "stroke 160ms ease, stroke-width 160ms ease" };
+  const sinWidth = focus === "sin" ? 6 : 4;
+  const cosWidth = focus === "cos" ? 6 : 4;
+  const smooth = {
+    transition:
+      "stroke 180ms ease, stroke-width 180ms ease, transform .25s ease",
+  };
 
   // ---- sanitize / derive number ----
   const clamp = (n) => Math.max(-360, Math.min(360, n));
@@ -77,7 +82,10 @@ export default function CircleUnit() {
   const AngleLabel = ({ d, text }) => {
     const p = polar(r + 36, d);
     return (
-      <g transform={`translate(${p.x},${p.y})`}>
+      <g
+        style={{ transition: "transform .25s ease" }}
+        transform={`translate(${p.x},${p.y})`}
+      >
         <text
           textAnchor="middle"
           dominantBaseline="middle"
@@ -154,7 +162,9 @@ export default function CircleUnit() {
   return (
     <div className="wrap">
       <div className="card">
-        <div className="title">Magic Unit Circle</div>
+        <div className="title-wrap">
+          <div className="title">Magic Unit Circle</div>
+        </div>
 
         <div className="stage">
           <svg
@@ -179,6 +189,29 @@ export default function CircleUnit() {
               <linearGradient id="cosFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#d7f8c7" />
                 <stop offset="100%" stopColor="#bff2a4" />
+                <defs>
+                  {/* เงานุ่มสำหรับเส้น */}
+                  <filter
+                    id="softShadow"
+                    x="-20%"
+                    y="-20%"
+                    width="140%"
+                    height="140%"
+                  >
+                    <feDropShadow
+                      dx="0"
+                      dy="2"
+                      stdDeviation="2"
+                      flood-opacity=".25"
+                    />
+                  </filter>
+
+                  {/* สโตรกวงกลมแบบกราเดียนต์ */}
+                  <linearGradient id="ringStroke" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#6fa8ff" />
+                    <stop offset="100%" stopColor="#39d6b6" />
+                  </linearGradient>
+                </defs>
               </linearGradient>
             </defs>
             {/* outer ring & main circle */}
@@ -310,7 +343,10 @@ export default function CircleUnit() {
               (0,-1)
             </text>
             {/* ===== รวมสี่สามเหลี่ยมใน group เดียว แล้วหมุนด้วย d ===== */}
-            <g transform={`rotate(${-d} ${cx} ${cy})`}>
+            <g
+              transform={`rotate(${-d} ${cx} ${cy})`}
+              filter="url(#softShadow)"
+            >
               {/* Q1 (+,+) */}
               <line
                 x1={cx}
@@ -473,7 +509,10 @@ export default function CircleUnit() {
               fill="#ff5a5a"
               stroke="#fff"
               strokeWidth={5}
-              style={{ cursor: "pointer" }}
+              style={{
+                cursor: "pointer",
+                filter: "drop-shadow(0 4px 8px rgba(0,0,0,.25))",
+              }}
               onPointerDown={handlePointerDown}
             />
           </svg>
@@ -484,6 +523,7 @@ export default function CircleUnit() {
           <button
             className={`btn pink ${focus === "sin" ? "active" : ""}`}
             onClick={() => setFocus(focus === "sin" ? "none" : "sin")}
+            strokeWidth={sinWidth}
           >
             Find Sin
           </button>
@@ -491,6 +531,7 @@ export default function CircleUnit() {
           <button
             className={`btn blue ${focus === "cos" ? "active" : ""}`}
             onClick={() => setFocus(focus === "cos" ? "none" : "cos")}
+            strokeWidth={cosWidth}
           >
             Find Cos
           </button>
