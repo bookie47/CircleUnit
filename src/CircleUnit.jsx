@@ -346,7 +346,7 @@ export default function CircleUnit() {
             </text>
             {/* ===== รวมสี่สามเหลี่ยมใน group เดียว แล้วหมุนด้วย d ===== */}
             <g
-              transform={`rotate(${45-d} ${cx} ${cy})`}
+              transform={`rotate(${45 - d} ${cx} ${cy})`}
               filter="url(#softShadow)"
             >
               {/* Q1 (+,+) */}
@@ -377,6 +377,36 @@ export default function CircleUnit() {
                 strokeWidth={4}
                 strokeDasharray="6 6"
               />
+
+              {(() => {
+                const arcRadius = 40;
+                const angleDeg = 45; // ปรับตรงนี้ = ขนาดมุมที่ต้องการ เช่น 30°, 60°, 90°
+                const angleRad = (angleDeg * Math.PI) / 180;
+
+                // จุดเริ่มต้นอยู่ที่มุม 0°
+                const start = {
+                  x: cx + arcRadius,
+                  y: cy,
+                };
+
+                // จุดสิ้นสุดตามมุมที่ต้องการ (ใช้ sin/cos)
+                const end = {
+                  x: cx + arcRadius * Math.cos(angleRad),
+                  y: cy - arcRadius * Math.sin(angleRad),
+                };
+
+                return (
+                  <path
+                    d={`M ${start.x} ${start.y} A ${arcRadius} ${arcRadius} 0 ${
+                      angleDeg > 180 ? 1 : 0
+                    } 0 ${end.x} ${end.y}`}
+                    stroke="#0BA6DF"
+                    strokeWidth={4}
+                    fill="none"
+                  />
+                );
+              })()}
+
               {/* Q2 (-,+) */}
               <line
                 x1={cx}
@@ -461,6 +491,35 @@ export default function CircleUnit() {
                 strokeWidth={4}
                 strokeDasharray="6 6"
               />
+
+              {(() => {
+                const arcRadius = 40;
+                const angleDeg = 45; // ปรับมุมได้
+                const angleRad = (angleDeg * Math.PI) / 180;
+
+                // จุดเริ่มต้นที่ด้านขวา (แนว 0°)
+                const start = {
+                  x: cx + arcRadius,
+                  y: cy,
+                };
+
+                // จุดสิ้นสุดหมุนตามมุมแบบสะท้อน (ลงล่าง)
+                const end = {
+                  x: cx + arcRadius * Math.cos(angleRad),
+                  y: cy + arcRadius * Math.sin(angleRad),
+                };
+
+                return (
+                  <path
+                    d={`M ${start.x} ${start.y} A ${arcRadius} ${arcRadius} 0 ${
+                      angleDeg > 180 ? 1 : 0
+                    } 1 ${end.x} ${end.y}`}
+                    stroke="#DC143C"
+                    strokeWidth={4}
+                    fill="none"
+                  />
+                );
+              })()}
 
               {/*สีเหลี่ยมุมฉาก */}
               {/* Q1 */}
