@@ -5,7 +5,7 @@ import "./CircleUnit.css";
 import { formatTrigValue } from "./trigFormatter";
 
 export default function CircleUnit() {
-  const [deg, setDeg] = useState(""); // เก็บค่าจากอินพุต (string) เพื่อควบคุม "0 นำหน้า" ฯลฯ
+  const [deg, setDeg] = useState("45"); // เก็บค่าจากอินพุต (string) เพื่อควบคุม "0 นำหน้า" ฯลฯ
   const [dragging, setDragging] = useState(false);
 
   const [focus, setFocus] = useState("none");
@@ -45,12 +45,14 @@ export default function CircleUnit() {
   // ---- Canvas params (ทำ responsive ผ่าน CSS; viewBox = size) ----
   const size = 560; // พื้นที่คงที่ของ viewBox (พิกัดภายใน SVG)
   const r = 190; // รัศมีวงกลมหน่วย (ในพิกัด viewBox)
-  const triangleSize = r * 0.7;
+  //const triangleSize = r * 0.7;
+  const triangleSize = r / Math.SQRT2;
+  const TRI = triangleSize * 1;
   const cx = size / 2;
   const cy = size / 2;
 
-  const px = cx + r * Math.cos(rad);
-  const py = cy - r * Math.sin(rad);
+  const px = cx + triangleSize; // ปลายแกน x (ฐาน)
+  const py = cy - triangleSize; // ปลายแกน y (สูง)
 
   // มุมมาตรฐาน (0° ขวา, ทวนเข็มบวก) → มุมสำหรับ polar()/SVG ปัจจุบัน (0° บน, ตามเข็มบวก)
   const toSvg = (theta) => 90 - theta;
@@ -141,14 +143,14 @@ export default function CircleUnit() {
   const handlePointerDown = (e) => {
     e.preventDefault();
     setDragging(true);
-    setDeg(String(getAngleFromPointer(e)));
-    // จับ pointer เพื่อไม่หลุดเมื่อเลื่อนออก
+    // ไม่ต้อง setDeg ที่นี่ ปล่อยไว้เฉย ๆ
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
+
   const handlePointerMove = (e) => {
     if (!dragging) return;
     e.preventDefault();
-    setDeg(String(getAngleFromPointer(e)));
+    setDeg(String(getAngleFromPointer(e))); // ✅ อัปเดตตอนลากเท่านั้น
   };
   const handlePointerUp = (e) => {
     setDragging(false);
@@ -344,7 +346,7 @@ export default function CircleUnit() {
             </text>
             {/* ===== รวมสี่สามเหลี่ยมใน group เดียว แล้วหมุนด้วย d ===== */}
             <g
-              transform={`rotate(${-d} ${cx} ${cy})`}
+              transform={`rotate(${45-d} ${cx} ${cy})`}
               filter="url(#softShadow)"
             >
               {/* Q1 (+,+) */}
@@ -371,7 +373,7 @@ export default function CircleUnit() {
                 y1={cy}
                 x2={cx + triangleSize}
                 y2={cy - triangleSize}
-                stroke={HYP}
+                stroke="#F5AD18"
                 strokeWidth={4}
                 strokeDasharray="6 6"
               />
@@ -502,19 +504,23 @@ export default function CircleUnit() {
                 strokeWidth={3}
               />
             </g>
-            <circle
-              cx={px}
-              cy={py}
-              r={11}
-              fill="#ff5a5a"
-              stroke="#fff"
-              strokeWidth={5}
-              style={{
-                cursor: "pointer",
-                filter: "drop-shadow(0 4px 8px rgba(0,0,0,.25))",
-              }}
-              onPointerDown={handlePointerDown}
-            />
+            {(() => {
+              const p = polar(r, toSvg(d));
+              return (
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={12}
+                  fill="white"
+                  stroke="#e2536b"
+                  strokeWidth={4}
+                  style={{ cursor: "pointer" }}
+                  onPointerDown={handlePointerDown}
+                  onPointerUp={handlePointerUp}
+                  onPointerMove={handlePointerMove}
+                />
+              );
+            })()}
           </svg>
         </div>
 
