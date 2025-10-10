@@ -295,7 +295,7 @@ const TriangleArm = ({
 <TriangleArm
   angle={180 + d}
   colorBase="#9c27b0"
-  colorHeight="#e91e63"
+  colorHeight="#7800afff"
   colorHyp="#673ab7"
   opacityBase={0.35}
   opacityHeight={0.35}
@@ -305,8 +305,8 @@ const TriangleArm = ({
 <TriangleArm
   angle={360 - d}
   colorBase="#03a9f4"
-  colorHeight="#00bcd4"
-  colorHyp="#2196f3"
+  colorHeight="#fca400ff"
+  colorHyp="#d8a706ff"
   opacityBase={0.55}
   opacityHeight={0.55}
   opacityHyp={0.5}
